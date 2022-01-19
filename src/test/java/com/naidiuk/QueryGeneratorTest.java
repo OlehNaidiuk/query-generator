@@ -19,7 +19,7 @@ class QueryGeneratorTest {
     @Test
     void testGetAll() {
         //prepare
-        String expectedQuery = "SELECT id, person_name, salary FROM persons;";
+        String expectedQuery = "SELECT id, person_name, salary FROM person;";
 
         //when
         String actualQuery = queryGenerator.getAll(Person.class);
@@ -31,7 +31,7 @@ class QueryGeneratorTest {
     @Test
     void testInsert() {
         //prepare
-        String expectedQuery = "INSERT INTO persons (id, person_name, salary) VALUES (17, 'Oleh', 500.0);";
+        String expectedQuery = "INSERT INTO person (id, person_name, salary) VALUES (17, 'Oleh', 500.0);";
 
         //when
         String actualQuery = queryGenerator.insert(person);
@@ -43,7 +43,7 @@ class QueryGeneratorTest {
     @Test
     void testUpdate() {
         //prepare
-        String expectedQuery = "UPDATE persons SET person_name='Oleh', salary=500.0 WHERE id=17;";
+        String expectedQuery = "UPDATE person SET person_name='Oleh', salary=500.0 WHERE id=17;";
 
         //when
         String actualQuery = queryGenerator.update(person);
@@ -55,7 +55,7 @@ class QueryGeneratorTest {
     @Test
     void testGetById() {
         //prepare
-        String expectedQuery = "SELECT person_name, salary FROM persons WHERE id=17;";
+        String expectedQuery = "SELECT person_name, salary FROM person WHERE id=17;";
 
         //when
         String actualQuery = queryGenerator.getById(Person.class, person.getId());
@@ -67,7 +67,7 @@ class QueryGeneratorTest {
     @Test
     void testDelete() {
         //prepare
-        String expectedQuery = "DELETE FROM persons WHERE id=17;";
+        String expectedQuery = "DELETE FROM person WHERE id=17;";
 
         //when
         String actualQuery = queryGenerator.delete(Person.class, person.getId());

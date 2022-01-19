@@ -4,143 +4,131 @@ import java.lang.reflect.Field;
 import java.util.StringJoiner;
 
 public class QueryGenerator {
+
     public String getAll(Class<?> clazz) {
-        StringBuilder selectAllQueryToSQL = new StringBuilder("SELECT ");
         String tableName = getTableName(clazz);
+        StringBuilder querySelectAll = new StringBuilder("SELECT ");
         StringJoiner columnNames = new StringJoiner(", ");
         for (Field declaredField : clazz.getDeclaredFields()) {
             if (declaredField.isAnnotationPresent(Column.class)) {
-                Column columnAnnotation = declaredField.getAnnotation(Column.class);
-                String columnName = columnAnnotation.name().isEmpty() ?
-                        declaredField.getName() : columnAnnotation.name();
+                String columnName = getColumnName(declaredField);
                 columnNames.add(columnName);
             }
         }
-        selectAllQueryToSQL.append(columnNames);
-        selectAllQueryToSQL.append(" FROM ");
-        selectAllQueryToSQL.append(tableName);
-        selectAllQueryToSQL.append(";");
-        return selectAllQueryToSQL.toString();
+        querySelectAll.append(columnNames);
+        querySelectAll.append(" FROM ");
+        querySelectAll.append(tableName);
+        querySelectAll.append(";");
+        return querySelectAll.toString();
     }
 
     public String insert(Object value) {
-        StringBuilder insertQueryToSQL = new StringBuilder("INSERT INTO ");
         String tableName = getTableName(value.getClass());
+        StringBuilder queryInsert = new StringBuilder("INSERT INTO ");
         StringJoiner columnNames = new StringJoiner(", ", "(", ")");
         StringJoiner columnValues = new StringJoiner(", ", "(", ")");
         for (Field declaredField : value.getClass().getDeclaredFields()) {
             if (declaredField.isAnnotationPresent(Column.class)) {
-                declaredField.setAccessible(true);
-                Column columnAnnotation = declaredField.getAnnotation(Column.class);
-                String columnName = columnAnnotation.name().isEmpty() ?
-                        declaredField.getName() : columnAnnotation.name();
+                String columnName = getColumnName(declaredField);
+                columnNames.add(columnName);
                 Object columnValue;
                 try {
+                    declaredField.setAccessible(true);
                     columnValue = declaredField.get(value);
+                    declaredField.setAccessible(false);
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException("No access to field");
                 }
-                columnNames.add(columnName);
                 if (declaredField.getType().equals(String.class)) {
-                    String attribute = String.format("'%s'", columnValue);
-                    columnValues.add(attribute);
+                    columnValues.add(String.format("'%s'", columnValue));
                 } else {
                     columnValues.add(String.valueOf(columnValue));
                 }
-                declaredField.setAccessible(false);
+
             }
         }
-        insertQueryToSQL.append(tableName);
-        insertQueryToSQL.append(" ");
-        insertQueryToSQL.append(columnNames);
-        insertQueryToSQL.append(" VALUES ");
-        insertQueryToSQL.append(columnValues);
-        insertQueryToSQL.append(";");
-        return insertQueryToSQL.toString();
+        queryInsert.append(tableName);
+        queryInsert.append(" ");
+        queryInsert.append(columnNames);
+        queryInsert.append(" VALUES ");
+        queryInsert.append(columnValues);
+        queryInsert.append(";");
+        return queryInsert.toString();
     }
 
     public String update(Object value) {
-        StringBuilder updateQueryToSQL = new StringBuilder("UPDATE ");
         String tableName = getTableName(value.getClass());
+        StringBuilder queryUpdate = new StringBuilder("UPDATE ");
         StringJoiner columnNames = new StringJoiner(", ");
-        String primaryKey = "";
+        String condition = "";
         for (Field declaredField : value.getClass().getDeclaredFields()) {
             if (declaredField.isAnnotationPresent(Column.class)) {
-                declaredField.setAccessible(true);
-                Column columnAnnotation = declaredField.getAnnotation(Column.class);
-                String columnName = columnAnnotation.name().isEmpty() ?
-                        declaredField.getName() : columnAnnotation.name();
+                String columnName = getColumnName(declaredField);
                 Object columnValue;
                 try {
+                    declaredField.setAccessible(true);
                     columnValue = declaredField.get(value);
+                    declaredField.setAccessible(false);
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException("No access to field");
                 }
-                if (columnName.equals("id")) {
-                    primaryKey = columnName + "=" + columnValue;
+                if (declaredField.isAnnotationPresent(Id.class)) {
+                    condition = getIdName(declaredField) + "=" + columnValue;
                 } else if (declaredField.getType().equals(String.class)) {
-                    String attribute = String.format("'%s'", columnValue);
-                    columnNames.add(columnName + "=" + attribute);
+                    columnNames.add(columnName + "=" + String.format("'%s'", columnValue));
                 } else {
                     columnNames.add(columnName + "=" + columnValue);
                 }
-                declaredField.setAccessible(false);
+
             }
         }
-        updateQueryToSQL.append(tableName);
-        updateQueryToSQL.append(" SET ");
-        updateQueryToSQL.append(columnNames);
-        updateQueryToSQL.append(" WHERE ");
-        updateQueryToSQL.append(primaryKey);
-        updateQueryToSQL.append(";");
-        return updateQueryToSQL.toString();
+        queryUpdate.append(tableName);
+        queryUpdate.append(" SET ");
+        queryUpdate.append(columnNames);
+        queryUpdate.append(" WHERE ");
+        queryUpdate.append(condition);
+        queryUpdate.append(";");
+        return queryUpdate.toString();
     }
 
     public String getById(Class<?> clazz, Object id) {
-        StringBuilder selectByIdQueryToSQL = new StringBuilder("SELECT ");
         String tableName = getTableName(clazz);
+        StringBuilder querySelectById = new StringBuilder("SELECT ");
         StringJoiner columnNames = new StringJoiner(", ");
-        String primaryKey = "";
+        String condition = "";
         for (Field declaredField : clazz.getDeclaredFields()) {
             if (declaredField.isAnnotationPresent(Column.class)) {
-                Column columnAnnotation = declaredField.getAnnotation(Column.class);
-                String columnName = columnAnnotation.name().isEmpty() ?
-                        declaredField.getName() : columnAnnotation.name();
-                if (columnName.equals("id")) {
-                    primaryKey = columnName + "=" + id;
+                if (declaredField.isAnnotationPresent(Id.class)) {
+                    condition = getIdName(declaredField) + "=" + id;
                 } else {
+                    String columnName = getColumnName(declaredField);
                     columnNames.add(columnName);
                 }
             }
         }
-        selectByIdQueryToSQL.append(columnNames);
-        selectByIdQueryToSQL.append(" FROM ");
-        selectByIdQueryToSQL.append(tableName);
-        selectByIdQueryToSQL.append(" WHERE ");
-        selectByIdQueryToSQL.append(primaryKey);
-        selectByIdQueryToSQL.append(";");
-        return selectByIdQueryToSQL.toString();
+        querySelectById.append(columnNames);
+        querySelectById.append(" FROM ");
+        querySelectById.append(tableName);
+        querySelectById.append(" WHERE ");
+        querySelectById.append(condition);
+        querySelectById.append(";");
+        return querySelectById.toString();
     }
 
     public String delete(Class<?> clazz, Object id) {
-        StringBuilder deleteQueryToSQL = new StringBuilder("DELETE FROM ");
         String tableName = getTableName(clazz);
-        String primaryKey = "";
+        StringBuilder queryDelete = new StringBuilder("DELETE FROM ");
+        String condition = "";
         for (Field declaredField : clazz.getDeclaredFields()) {
-            if (declaredField.isAnnotationPresent(Column.class)) {
-                Column columnAnnotation = declaredField.getAnnotation(Column.class);
-                String columnName = columnAnnotation.name().isEmpty() ?
-                        declaredField.getName() : columnAnnotation.name();
-                if (columnName.equals("id")) {
-                    primaryKey = columnName + "=" + id;
-                }
+            if (declaredField.isAnnotationPresent(Column.class) && declaredField.isAnnotationPresent(Id.class)) {
+                condition = getIdName(declaredField) + "=" + id;
             }
         }
-        deleteQueryToSQL.append(tableName);
-        deleteQueryToSQL.append(" WHERE ");
-        deleteQueryToSQL.append(primaryKey);
-        deleteQueryToSQL.append(";");
-        return deleteQueryToSQL.toString();
+        queryDelete.append(tableName);
+        queryDelete.append(" WHERE ");
+        queryDelete.append(condition);
+        queryDelete.append(";");
+        return queryDelete.toString();
     }
 
     private String getTableName(Class<?> clazz) {
@@ -150,5 +138,17 @@ public class QueryGenerator {
         }
         return tableAnnotation.name().isEmpty() ?
                 clazz.getSimpleName() : tableAnnotation.name();
+    }
+
+    private String getColumnName(Field field) {
+        Column columnAnnotation = field.getAnnotation(Column.class);
+        return columnAnnotation.name().isEmpty() ?
+                field.getName() : columnAnnotation.name();
+    }
+
+    private String getIdName(Field field) {
+        Id idAnnotation = field.getAnnotation(Id.class);
+        return idAnnotation.name().isEmpty() ?
+                field.getName() : idAnnotation.name();
     }
 }

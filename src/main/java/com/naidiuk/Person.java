@@ -1,8 +1,9 @@
 package com.naidiuk;
 
-@Table(name = "persons")
+@Table(name = "person")
 public class Person {
     @Column
+    @Id
     private int id;
     @Column(name = "person_name")
     private String name;
